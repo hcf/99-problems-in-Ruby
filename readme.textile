@@ -1,0 +1,204 @@
+<h1>Ruby functional programming</h1>
+
+
+	<p>Learning functional programming using Ruby by solving <a href="https://prof.ti.bfh.ch/hew1/informatik3/prolog/p-99/">the Ninety-Nine Prolog problems</a>.</p>
+
+
+	<p>As I read a blogpost written by <a href="http://gabrielsw.blogspot.com/2009/04/my-take-on-99-problems-in-scala-first.html">Gabriel</a>, about solving the 22 of <a href="https://prof.ti.bfh.ch/hew1/informatik3/prolog/p-99/">the Ninety-Nine Prolog problems</a>, I thought this would be a good opportunity to improve my functional programming skills in Ruby (I will probably also try to solve some of these problems in either Erlang or Haskell to improve my knowledge of these languages as well). Gabriel also links to the <a href="http://aperiodic.net/phil/scala/s-99/">Scala solutions</a> if this is more your cup of tea.</p>
+
+
+	<p>So far I have solved almost all of the <em>Working with Prolog lists</em> problems, with the exception of problem 26 and problem 27. I just can&#8217;t wrap my head around how to solve these, not even on paper, and the solution given in Prolog doesn&#8217;t exactly help me. Solving these problems in Ruby turned out to be quite simple for most of the problems, close to cheating even for some, as all you need is built into Ruby. I have tried to use a functional style of programming for the solutions, but for some, for example problem 28, I didn&#8217;t manage.</p>
+
+
+	<p>For these first problems, I mainly use the <a href="http://www.ruby-doc.org/core/classes/Enumerable.html#M003171">Enumarable::inject</a>, which <em>combines the elements of enum by applying the block to an accumulator value (memo) and each element in turn</em>. The hard part is mostly defining the data structure to use, without it, it will be impossible to even solve the problem in a functional fashion.</p>
+
+
+	<p>The following <a href="99_problems_ruby.zip">solutions can be downloaded here</a>, with corresponding specs.</p>
+
+
+<pre>
+<code>
+  # P01 - Find the last element of a list.
+  # built in
+
+  # P02 - Find the last but one element of a list.
+  def second_to_last
+    self[-2]
+  end
+
+  # P03 - Find the K'th element of a list.
+  # Using Prolog's notion of lists starting with index 1.
+  def kth(k)
+    self[k - 1]
+  end
+
+  # P04 - Find the number of elements of a list.
+  # built in
+
+  # P05 - Reverse a list.
+  # built in
+
+  # P06 - Find out whether a list is a palindrome.
+  def palindrome?
+    self == self.reverse
+  end
+
+  # P07 - Flatten a nested list structure.
+  # built in
+
+  # P08 - Eliminate consecutive duplicates of list elements.
+  def eliminate_consecutive_duplicates
+    self.inject([]) do |array, current| 
+        array &lt;&lt; current unless array[-1] == current
+        array
+    end
+  end
+
+  # P09 - Pack consecutive duplicates of list elements into sublists.
+  def pack_consecutive_duplicates
+    self.inject([[]]) do |array, current|
+        if array[-1][-1] == current or array[-1][-1].nil?
+            array[-1] &lt;&lt; current
+        else
+            array &lt;&lt; [current]
+        end
+        array
+    end
+  end
+
+  # P10 - Run-length encoding of a list.
+  def run_length_encode
+    self.pack_consecutive_duplicates.inject([]) do |array, current|
+        array &lt;&lt; [current.size, current[0]]
+        array  
+    end
+  end
+
+  # P11 - Modified run-length encoding.
+  def modified_run_length_encode
+    self.run_length_encode.inject([]) do |array, current|
+        array &lt;&lt; current if current[0] &gt; 1
+        array &lt;&lt; current[-1] if current[0] == 1
+        array
+    end
+  end
+
+  # P12 - Decode a run-length encoded list.
+  def decode_modified_run_length_encoded
+    self.inject([]) do |array, current|
+        if current.kind_of? Array
+          array &lt;&lt; [current[-1]] * current[0]
+        else
+          array &lt;&lt; current
+        end
+        array
+    end.flatten
+  end
+
+  # P13 - Run-length encoding of a list (direct solution).
+  def direct_run_length_encode
+    self.inject([[0, nil]]) do |array, current|
+      if array[-1][-1] == current or array[-1][-1].nil?
+          array[-1][-1] = current
+          array[-1][0] += 1 
+      else
+          array[-1] = array[-1][-1] if array[-1][0] == 1
+          array &lt;&lt; [1, current]
+      end
+      array
+    end
+  end
+
+  # P14 &#38; P15 - Duplicate the elements of a list n times, 2 by default.
+  def duplicate_elements(n = 2)
+    self.inject([]) do |array, current|
+      array &lt;&lt; [current] * n
+      array
+    end.flatten
+  end  
+
+  # P16 (**) Drop every N'th element from a list.
+  def drop_every_nth(n)
+    self.inject([[]]) do |array, current|
+      if array[-1].size == n
+        array &lt;&lt; [current]
+      else
+        array[-1] &lt;&lt; current
+      end
+      array
+    end.inject([]) do |array, list|
+      list.pop if list.size == n
+      array &lt;&lt; list
+    end.flatten
+  end
+
+  # P17 (*) Split a list into two parts; the length of the first part is given.
+  def split_in_two(split)
+    [self[0...split], self[split..-1]]
+  end
+
+  # P18 (**) Extract a slice from a list.
+  # built in
+
+  # P19 (**) Rotate a list N places to the left.
+  def rotate(n)
+    self[n..-1].concat(self[0...n])
+  end
+
+  # P20 (*) Remove the K'th element from a list.
+  # built in
+
+  # P21 (*) Insert an element at a given position into a list.
+  # built in
+
+  # P22 (*) Create a list containing all integers within a given range.
+  # built in
+
+  # P23 (**) Extract a given number of randomly selected elements from a list.
+  def randomly_select(n)    
+    list = []
+    n.times do
+      list &lt;&lt; self[rand * size]
+    end
+    list
+  end
+
+  # P24 (*) Lotto: Draw N different random numbers from the set 1..M.
+  def randomly_select_different(n)
+    old_self = self
+    list = []
+    n.times do
+      list &lt;&lt; old_self.delete_at(rand * size)
+    end
+    list
+  end
+
+  # P25 (*) Generate a random permutation of the elements of a list.
+  def randomize
+    randomly_select_different(self.size)
+  end
+
+  # P26 (**) Generate the combinations of K distinct objects chosen from the N elements of a list
+
+  # P27 (**) Group the elements of a set into disjoint subsets.
+
+  # P28 (**) Sorting a list of lists according to length of sublists
+  # a
+  def sort_sublists_by_length
+    sort_by { |array| array.size }
+  end
+
+  # b
+  def sort_sublists_by_length_frequency
+    length_frequency = {}
+
+    each do |sublist|
+      length_frequency[sublist.size] ||= 0
+      length_frequency[sublist.size] += 1
+    end 
+
+    sort_by { |array| length_frequency[array.size]}
+  end
+
+</code>
+</pre>
